@@ -59,3 +59,24 @@ def create_device(device: Device):
     )
 
 
+
+@app.put("/devices/{name}")
+def put_device(name: str, device: Device):
+    if device.name != name:
+        raise HTTPException(
+            status_code=409,
+            detail="Device name must match URL"
+        )
+    new_device = device.model_dump()
+    result = devices.replace_one(
+        {"name": name},
+        new_device.copy(),
+        upsert=True
+    )
+    if result.upserted_id is not None:
+        return JSONResponse(
+            status_code=201,
+            content=new_device,
+            headers={"Location": "/devices/" + name}
+        )
+    return new_device
