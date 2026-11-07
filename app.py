@@ -4,11 +4,14 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
+from fastapi.responses import JSONResponse
 
 load_dotenv()
 client = MongoClient(os.getenv("MONGODB_URI"))
 db = client["ecse3038"]
 devices = db["tutorial5"]
+devices.create_index("name", unique=True)
 
 app = FastAPI()
 
@@ -37,3 +40,22 @@ def get_one_device(name: str):
             detail="Device not found"
         )
     return device
+
+
+@app.post("/devices", status_code=201)
+def create_device(device: Device):
+    new_device = device.model_dump()
+    try:
+        devices.insert_one(new_device.copy())
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=409,
+            detail="A device called " + device.name + " already exists"
+        )
+    return JSONResponse(
+        status_code=201,
+        content=new_device,
+        headers={"Location": "/devices/" + device.name}
+    )
+
+
