@@ -80,3 +80,12 @@ def put_device(name: str, device: Device):
             headers={"Location": "/devices/" + name}
         )
     return new_device
+
+
+
+@app.delete("/devices/{name}")
+def delete_device(name: str):
+    result = devices.delete_one({"name": name})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Device not found")
+    return {"message": "Device deleted successfully"}
